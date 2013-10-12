@@ -11,6 +11,7 @@ defmodule Exon.Decoder do
   @compile :native
   @whitespace ' \t\n\r'
   @dquote << ?\" >>
+  @escape << ?\\ >>
 
   def decode(bin) do
     value(bin)
@@ -39,13 +40,13 @@ defmodule Exon.Decoder do
   end
 
   lc { escape, char } inlist Enum.zip('"\\bfnrt', '"\\\b\f\n\r\t') do
-    defp chars_escape(<< ?\\, unquote(escape), rest :: binary >>, iolist) do
+    defp chars_escape(<< @escape, unquote(escape), rest :: binary >>, iolist) do
       chars(rest, [iolist, unquote(char)])
     end
   end
 
-  defp chars_escape(<< ?\\, ?u, a1, b1, c1, d1,
-                       ?\\, ?u, a2, b2, c2, d2,
+  defp chars_escape(<< @escape, ?u, a1, b1, c1, d1,
+                       @escape, ?u, a2, b2, c2, d2,
                        rest :: binary >>, iolist) when a1 in [?d, ?D] and a2 in [?d, ?D] do
     first     = list_to_integer([a1, b1, c1, d1], 16)
     second    = list_to_integer([a2, b2, c2, d2], 16)
@@ -53,7 +54,7 @@ defmodule Exon.Decoder do
     chars(rest, [iolist, << codepoint :: utf8 >>])
   end
 
-  defp chars_escape(<< ?\\, ?u, a, b, c, d, rest :: binary >>, iolist) do
+  defp chars_escape(<< @escape, ?u, a, b, c, d, rest :: binary >>, iolist) do
     chars(rest, [iolist, << list_to_integer([a, b, c, d], 16) :: utf8 >>])
   end
 
@@ -62,9 +63,9 @@ defmodule Exon.Decoder do
     raise InvalidChar, bin: bin
   end
 
-  defp chars_chunk_size(<< ?\" :: utf8,    _ :: binary >>, n), do: n
-  defp chars_chunk_size(<< ?\\ :: utf8,    _ :: binary >>, n), do: n
-  defp chars_chunk_size(<<   _ :: utf8, rest :: binary >>, n) do
+  defp chars_chunk_size(@dquote <> _, n), do: n
+  defp chars_chunk_size(@escape <> _, n), do: n
+  defp chars_chunk_size(<< _ :: utf8, rest :: binary >>, n) do
     chars_chunk_size(rest, n + 1)
   end
   defp chars_chunk_size(<<>>, n), do: n
