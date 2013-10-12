@@ -1,4 +1,6 @@
 defmodule Exon.Decoder do
+  use Bitwise
+
   defexception InvalidChar, bin: nil do
     def message(exception) do
       << char :: utf8, _ :: binary >> = exception.bin
@@ -40,6 +42,15 @@ defmodule Exon.Decoder do
     defp chars_escape(<< ?\\, unquote(escape), rest :: binary >>, iolist) do
       chars(rest, [iolist, unquote(char)])
     end
+  end
+
+  defp chars_escape(<< ?\\, ?u, a1, b1, c1, d1,
+                       ?\\, ?u, a2, b2, c2, d2,
+                       rest :: binary >>, iolist) when a1 in [?d, ?D] and a2 in [?d, ?D] do
+    first     = list_to_integer([a1, b1, c1, d1], 16)
+    second    = list_to_integer([a2, b2, c2, d2], 16)
+    codepoint = 0x10000 + ((first &&& 0x07ff) * 0x400) + (second &&& 0x03ff)
+    chars(rest, [iolist, << codepoint :: utf8 >>])
   end
 
   defp chars_escape(<< ?\\, ?u, a, b, c, d, rest :: binary >>, iolist) do
