@@ -77,9 +77,13 @@ defmodule Exon.Decoder do
     chars_chunk_size(rest, n + 1)
   end
   defp chars_chunk_size(<< char :: utf8, rest :: binary >>, n) do
-    chars_chunk_size(rest, n + byte_size(<< char :: utf8 >>))
+    chars_chunk_size(rest, n + codepoint_size(char))
   end
   defp chars_chunk_size(_, n), do: n
+
+  defp codepoint_size(char) when char < 0x8000,  do: 2
+  defp codepoint_size(char) when char < 0x10000, do: 3
+  defp codepoint_size(char),                     do: 4
 
   defp digits(<< digit, rest :: binary >>) when digit in ?0..?9 do
     { digits, rest } = digits(rest)
