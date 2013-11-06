@@ -3,8 +3,12 @@ defmodule Exon.Decoder do
 
   defexception InvalidChar, bin: nil do
     def message(exception) do
-      << char :: utf8, _ :: binary >> = exception.bin
-      "invalid character (#{<< char :: utf8 >>}) in JSON"
+      case exception.bin do
+        << char :: utf8, _ :: binary >> ->
+          "invalid character (#{<< char :: utf8 >>}) in JSON"
+        << byte, _ :: binary >> ->
+          "invalid byte (#{byte}) in JSON"
+      end
     end
   end
 
@@ -14,7 +18,11 @@ defmodule Exon.Decoder do
   @escape << ?\\ >>
 
   def decode(bin) do
-    value(bin)
+    try do
+      value(bin)
+    catch
+      :partial -> :partial
+    end
   end
 
   defp after_pair("," <> rest, obj), do: members(rest, obj)
@@ -71,7 +79,7 @@ defmodule Exon.Decoder do
   defp chars_chunk_size(<< char :: utf8, rest :: binary >>, n) do
     chars_chunk_size(rest, n + byte_size(<< char :: utf8 >>))
   end
-  defp chars_chunk_size(<<>>, n), do: n
+  defp chars_chunk_size(_, n), do: n
 
   defp digits(<< digit, rest :: binary >>) when digit in ?0..?9 do
     { digits, rest } = digits(rest)
