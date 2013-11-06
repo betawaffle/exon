@@ -112,8 +112,8 @@ defmodule Exon.Decoder do
     chars(bin, [])
   end
 
-  defp leave_array(arr),  do: :lists.reverse(arr)
-  defp leave_object(obj), do: :lists.reverse(obj)
+  defp leave_array(arr),  do: arr
+  defp leave_object(obj), do: {obj}
   defp leave_string(str), do: iolist_to_binary(str)
 
   defp members(@dquote <> rest, obj) do
