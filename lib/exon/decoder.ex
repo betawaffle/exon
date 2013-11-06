@@ -73,7 +73,7 @@ defmodule Exon.Decoder do
 
   defp chars_chunk_size(@dquote <> _, n), do: n
   defp chars_chunk_size(@escape <> _, n), do: n
-  defp chars_chunk_size(<< char, rest :: binary >>, n) when char < 0x7F do
+  defp chars_chunk_size(<< char, rest :: binary >>, n) when char < 0x80 do
     chars_chunk_size(rest, n + 1)
   end
   defp chars_chunk_size(<< char :: utf8, rest :: binary >>, n) do
